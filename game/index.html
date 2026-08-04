@@ -248,7 +248,7 @@ const HEROES = {
       use(state, playerIdx){ state.players[playerIdx].buffNextMinion = {atk:2,hp:1}; log(`${pName(state,playerIdx)} активирует Купаж — следующее существо получит +2/+1.`); } }
   },
   kitchen: {
-    id:"kitchen", name:"Хранитель Ритуальной Кухни", cls:"kitchen", hp:30, portrait:null,
+    id:"kitchen", name:"Хранитель Ритуальной Кухни", cls:"kitchen", hp:30, portrait:"../heroes/kitchen.jpeg",
     power:{ name:"Подношение", cost:2, text:"Призови токен «Жертвенный Агнец» 1/1.",
       use(state, playerIdx){ summonToken(state, playerIdx, {name:"Жертвенный Агнец", atk:1, hp:1, keywords:[]}); } }
   }
