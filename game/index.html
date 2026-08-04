@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вино &amp; Хинкали: Ночная смена — прототип</title>
+<style>
+:root{
+  --parchment:#f1e6cd; --ink:#26190f; --wine:#7a1030; --dusk:#46263f; --midnight:#140a11; --gold:#b08a44;
+  --bg:#120a10; --bg2:#1c1017; --fg:#ece2d2; --muted:#a3907a; --line:rgba(236,226,210,.14);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:radial-gradient(ellipse 900px 500px at 15% -10%, var(--bg2), transparent 60%), var(--bg);
+  color:var(--fg); font-family:system-ui,-apple-system,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased;
+}
+.display{ font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif; }
+.mono{ font-family:ui-monospace,"SF Mono","Courier New",monospace; font-variant-numeric:tabular-nums; }
+button{ font-family:inherit; cursor:pointer; }
+h1,h2,h3{ margin:0; }
+
+/* ---------- Hero select ---------- */
+#screen-select{ max-width:900px; margin:0 auto; padding:48px 20px; }
+#screen-select h1{ font-size:1.8rem; margin-bottom:8px; }
+#screen-select p.sub{ color:var(--muted); margin-bottom:32px; }
+.hero-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:18px; }
+.hero-card{
+  border:1px solid var(--gold); border-radius:12px; padding:20px;
+  background:linear-gradient(165deg,var(--dusk),#2a1626);
+  cursor:pointer; transition:transform .2s ease, box-shadow .2s ease;
+}
+.hero-card:hover{ transform:translateY(-4px); box-shadow:0 14px 28px -14px rgba(0,0,0,.6); }
+.hero-card h3{ font-size:1.2rem; margin-bottom:6px; }
+.hero-card .hp{ color:var(--muted); font-size:.85rem; margin-bottom:10px; }
+.hero-card .power{ font-size:.85rem; border-top:1px solid rgba(176,138,68,.35); padding-top:10px; }
+.hero-card .power b{ color:var(--gold); }
+
+/* ---------- Board ---------- */
+#screen-game{ display:none; height:100vh; flex-direction:column; }
+.zone{ display:flex; align-items:center; justify-content:center; gap:10px; padding:8px 10px; position:relative; }
+#enemy-hero-row, #player-hero-row{ padding:6px 14px; }
+.hero-badge{
+  display:flex; align-items:center; gap:10px; border:1px solid var(--gold); border-radius:10px;
+  padding:6px 12px; background:rgba(0,0,0,.25);
+}
+.hero-badge .name{ font-weight:600; font-size:.85rem; }
+.hero-badge .hp-pill, .hero-badge .mana-pill{
+  display:flex; align-items:center; gap:4px; font-size:.8rem; border-radius:6px; padding:2px 7px;
+}
+.hero-badge .hp-pill{ background:rgba(122,16,48,.35); }
+.hero-badge .mana-pill{ background:rgba(176,138,68,.25); }
+.hero-power-btn{
+  border:1px solid var(--gold); border-radius:8px; background:rgba(176,138,68,.15); color:var(--fg);
+  padding:5px 10px; font-size:.78rem;
+}
+.hero-power-btn:disabled{ opacity:.35; cursor:not-allowed; }
+.hero-power-btn.usable{ box-shadow:0 0 0 2px var(--gold); }
+.hero-target{ cursor:crosshair !important; box-shadow:0 0 0 3px #d9a94d !important; }
+
+.board-row{ min-height:130px; display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; padding:6px 10px; }
+#enemy-board{ }
+#player-board{ }
+
+.hand-row{ display:flex; align-items:flex-end; justify-content:center; gap:-10px; padding:10px; min-height:150px; }
+.hand-row .mini{ margin-left:-18px; }
+.hand-row .mini:first-child{ margin-left:0; }
+
+.topbar{ display:flex; align-items:center; justify-content:space-between; padding:8px 16px; border-bottom:1px solid var(--line); }
+.topbar .title{ font-size:.95rem; color:var(--muted); }
+#turn-indicator{ font-size:.85rem; padding:4px 10px; border-radius:20px; border:1px solid var(--gold); }
+#end-turn-btn{
+  border:1px solid var(--gold); border-radius:20px; padding:8px 18px; background:var(--wine); color:#f4e9d8;
+  font-weight:600; font-size:.85rem;
+}
+#end-turn-btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+/* mini card (board minion) */
+.mini{
+  width:82px; height:96px; border-radius:8px; position:relative; padding:5px;
+  background:linear-gradient(165deg,var(--midnight),#0c0710);
+  border:1.5px solid var(--gold); display:flex; flex-direction:column; justify-content:space-between;
+  cursor:pointer; transition:transform .12s ease, box-shadow .12s ease; user-select:none;
+}
+.mini:hover{ transform:translateY(-3px); }
+.mini.selectable{ box-shadow:0 0 0 2px #6fd66f; }
+.mini.selected{ box-shadow:0 0 0 3px #d9a94d; transform:translateY(-6px); }
+.mini.sick{ opacity:.55; }
+.mini.frozen{ filter:grayscale(.3) brightness(.8); box-shadow:0 0 0 2px #5cc8e8 inset; }
+.mini.stealth{ opacity:.5; border-style:dashed; }
+.mini .mname{ font-size:.58rem; line-height:1.1; text-align:center; }
+.mini .mkw{ font-size:.5rem; text-align:center; color:var(--gold); min-height:.6rem; }
+.mini .mstats{ display:flex; justify-content:space-between; font-size:.72rem; font-weight:700; }
+.mini .matk{ color:#f1e6cd; }
+.mini .mhp{ color:#ffb0b0; }
+.mini .shield-badge{ position:absolute; top:2px; right:2px; font-size:.6rem; }
+
+/* hand card */
+.hcard{
+  width:110px; height:150px; border-radius:10px; position:relative; padding:8px; cursor:pointer;
+  border:1.5px solid var(--gold); display:flex; flex-direction:column; gap:4px; transition:transform .15s ease;
+  box-shadow:0 6px 14px -8px rgba(0,0,0,.6);
+}
+.hcard:hover{ transform:translateY(-14px); z-index:5; }
+.hcard.playable{ box-shadow:0 0 0 2px #6fd66f, 0 6px 14px -8px rgba(0,0,0,.6); }
+.hcard.not-playable{ opacity:.55; }
+.hcard[data-type="creature"]{ background:linear-gradient(165deg,var(--dusk),#2a1626); }
+.hcard[data-type="spell"]{ background:linear-gradient(165deg,#2a1e3d,#1a1230); }
+.hcard[data-type="artifact"]{ background:linear-gradient(165deg,#332417,#1c140c); }
+.hcard .cost{
+  position:absolute; top:-6px; left:-6px; width:26px; height:26px; border-radius:50%;
+  background:var(--wine); border:1.5px solid var(--gold); display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:.8rem;
+}
+.hcard .hname{ font-size:.68rem; font-weight:600; margin-top:14px; text-align:center; line-height:1.15; }
+.hcard .htype{ font-size:.52rem; text-transform:uppercase; letter-spacing:.05em; opacity:.7; text-align:center; }
+.hcard .hrules{ font-size:.56rem; line-height:1.25; flex:1; overflow:hidden; opacity:.92; }
+.hcard .hstats{ display:flex; justify-content:space-between; font-size:.75rem; font-weight:700; }
+
+#log{
+  position:fixed; right:10px; bottom:10px; width:280px; max-height:180px; overflow-y:auto;
+  background:rgba(0,0,0,.55); border:1px solid var(--line); border-radius:8px; padding:8px 10px;
+  font-size:.7rem; color:var(--muted); z-index:50;
+}
+#log div{ margin-bottom:3px; }
+#log b{ color:var(--fg); }
+
+#overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; z-index:100;
+}
+#overlay .box{ background:var(--midnight); border:1px solid var(--gold); border-radius:14px; padding:36px 44px; text-align:center; }
+#overlay h2{ font-size:1.6rem; margin-bottom:14px; }
+#overlay button{ margin-top:18px; border:1px solid var(--gold); border-radius:20px; padding:8px 20px; background:var(--wine); color:#f4e9d8; }
+
+#hint{ text-align:center; font-size:.75rem; color:var(--muted); min-height:1.2em; padding:2px; }
+.deck-count{ font-size:.7rem; color:var(--muted); text-align:center; }
+</style>
+</head>
+<body>
+
+<div id="screen-select">
+  <h1 class="display">Вино &amp; Хинкали: Ночная смена</h1>
+  <p class="sub">Прототип v0.1 — выбери героя и сыграй партию против ИИ. Правила: GAME_DESIGN.md, карты: CARD_POOL_MVP.md.</p>
+  <div class="hero-grid" id="hero-grid"></div>
+</div>
+
+<div id="screen-game">
+  <div class="topbar">
+    <div class="title display">Вино &amp; Хинкали</div>
+    <div id="turn-indicator">Ход 1</div>
+    <button id="end-turn-btn">Закончить ход</button>
+  </div>
+
+  <div class="zone" id="enemy-hero-row"></div>
+  <div class="board-row" id="enemy-board"></div>
+  <div id="hint"></div>
+  <div class="board-row" id="player-board"></div>
+  <div class="zone" id="player-hero-row"></div>
+  <div class="hand-row" id="player-hand"></div>
+</div>
+
+<div id="log"></div>
+
+<div id="overlay">
+  <div class="box">
+    <h2 class="display" id="overlay-title"></h2>
+    <button id="overlay-btn">Новая партия</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   CARD DATABASE
+   ========================================================= */
+const CLASSES = {
+  night_servant: "Ночной Слуга",
+  sommelier: "Кровавый Сомелье",
+  kitchen: "Хранитель Ритуальной Кухни",
+};
+
+const HEROES = {
+  night_servant: {
+    id:"night_servant", name:"Ночной Слуга", cls:"night_servant", hp:30,
+    power:{ name:"Тень с подноса", cost:2, text:"Призови существо 1/1 с Charge.",
+      use(state, playerIdx){ summonToken(state, playerIdx, {name:"Мимолётная Тень", atk:1, hp:1, keywords:["Charge"]}); } }
+  },
+  sommelier: {
+    id:"sommelier", name:"Кровавый Сомелье", cls:"sommelier", hp:30,
+    power:{ name:"Купаж", cost:2, text:"Следующее существо в этот ход получает +2/+1.",
+      use(state, playerIdx){ state.players[playerIdx].buffNextMinion = {atk:2,hp:1}; log(`${pName(state,playerIdx)} активирует Купаж — следующее существо получит +2/+1.`); } }
+  },
+  kitchen: {
+    id:"kitchen", name:"Хранитель Ритуальной Кухни", cls:"kitchen", hp:30,
+    power:{ name:"Подношение", cost:2, text:"Призови токен «Жертвенный Агнец» 1/1.",
+      use(state, playerIdx){ summonToken(state, playerIdx, {name:"Жертвенный Агнец", atk:1, hp:1, keywords:[]}); } }
+  }
+};
+
+// Rarity copy caps (all concrete cards here are common/rare -> 2 copies)
+function mkCreature(id,name,cls,cost,atk,hp,keywords,text,opts={}){
+  return Object.assign({id,name,cls,cost,type:"creature",atk,hp,keywords:keywords||[],text:text||"",tags:opts.tags||[]}, opts);
+}
+function mkSpell(id,name,cls,cost,text,effect,opts={}){
+  return Object.assign({id,name,cls,cost,type:"spell",text,effect}, opts);
+}
+function mkArtifact(id,name,cls,cost,text,opts={}){
+  return Object.assign({id,name,cls,cost,type:"artifact",text}, opts);
+}
+
+const CARD_DB = {};
+function reg(card){ CARD_DB[card.id]=card; return card; }
+
+/* --- Ночной Слуга --- */
+reg(mkCreature("yuny_sluga","Юный Слуга","night_servant",1,2,1,[],"Ваниль."));
+reg(mkCreature("bystry_ofic","Быстрый Официант","night_servant",2,2,2,["Charge"],"Charge."));
+reg(mkSpell("nochnoy_obhod","Ночной Обход","night_servant",3,"Дай существу +2 атаки и Charge до конца хода.",
+  (state,playerIdx,targetUid)=>{
+    const m = findMinion(state,targetUid); if(!m) return false;
+    m.atk += 2; m.tempCharge = true; m.canAttack = true;
+    log(`Ночной Обход: ${m.name} получает +2 атаки и Charge до конца хода.`);
+    return true;
+  }, {needsTarget:"own_minion"}));
+reg(mkSpell("smert_ukus","Смертельный Укус","night_servant",3,"Нанеси 3 урона герою противника напрямую (игнорирует Provoke).",
+  (state,playerIdx)=>{ const opp=1-playerIdx; damageHero(state,opp,3); log(`Смертельный Укус: 3 урона герою противника.`); return true; }));
+reg(mkSpell("staya_teney","Стая Теней","night_servant",4,"Призови двух юнитов 1/1 с Charge.",
+  (state,playerIdx)=>{ summonToken(state,playerIdx,{name:"Тень",atk:1,hp:1,keywords:["Charge"]}); summonToken(state,playerIdx,{name:"Тень",atk:1,hp:1,keywords:["Charge"]}); return true; }));
+reg(mkArtifact("serebr_podnos","Серебряный Поднос","night_servant",2,"Пока в игре: существа стоимостью 1 или меньше получают Charge при розыгрыше."));
+reg(mkCreature("bezmolvny_kravchiy","Безмолвный Кравчий","night_servant",5,4,4,["Lifesteal"],"Lifesteal.",{tags:["vampire"]}));
+
+/* --- Кровавый Сомелье --- */
+reg(mkCreature("molodoy_som","Молодой Сомелье","sommelier",1,1,3,[],"Ваниль."));
+reg(mkSpell("vyderzh_vino","Выдержанное Вино","sommelier",2,"Дай существу +2/+2 навсегда.",
+  (state,playerIdx,targetUid)=>{ const m=findMinion(state,targetUid); if(!m) return false; const bonus=state.players[playerIdx].artifacts.has("hrust_grafin")?1:0; const amt=2+bonus; m.atk+=amt; m.hp+=amt; m.maxHp+=amt; log(`${m.name} получает +${amt}/+${amt}.`); return true; },{needsTarget:"own_minion"}));
+reg(mkArtifact("hrust_grafin","Хрустальный Графин","sommelier",3,"Пока в игре: твои баффы +X/+X дают на +1/+1 больше."));
+reg(mkSpell("smesh_krovi","Смешение Крови","sommelier",3,"Дай существу Lifesteal навсегда.",
+  (state,playerIdx,targetUid)=>{ const m=findMinion(state,targetUid); if(!m) return false; m.keywords.add("Lifesteal"); m.tags.add("vampire"); log(`${m.name} получает Lifesteal.`); return true; },{needsTarget:"own_minion"}));
+reg(mkCreature("krov_kupazh","Кровавый Купаж","sommelier",4,3,5,[],"Battlecry: дай другому дружественному существу +2/+2.",
+  {battlecry:(state,playerIdx,self)=>{ const others = state.players[playerIdx].board.filter(m=>m.uid!==self.uid); if(others.length){ const t=others[others.length-1]; t.atk+=2; t.hp+=2; t.maxHp+=2; log(`Кровавый Купаж усиливает ${t.name} на +2/+2.`);} }}));
+reg(mkCreature("stary_pogrebschik","Старый Погребщик","sommelier",5,4,6,["Shield"],"Shield."));
+
+/* --- Хранитель Ритуальной Кухни --- */
+reg(mkCreature("kuh_podmasterye","Кухонный Подмастерье","kitchen",2,1,4,[],"Ваниль."));
+reg(mkSpell("ritual_nozh","Ритуальный Нож","kitchen",2,"Пожертвуй дружественное существо: нанеси 3 урона любой цели.",
+  (state,playerIdx,targetUid,sacUid)=>{
+    const sac=findMinion(state,sacUid); if(!sac) return false;
+    killMinion(state,playerIdx,sac,"sacrifice");
+    dealDamageToTarget(state,playerIdx,targetUid,3);
+    log(`Ритуальный Нож: пожертвован ${sac.name}, нанесено 3 урона.`);
+    return true;
+  },{needsTarget:"any", needsSacrifice:true}));
+reg(mkArtifact("ritual_altar","Ритуальный Алтарь","kitchen",3,"Пока в игре: когда дружественное существо умирает, восстанови 1 здоровье своему герою."));
+reg(mkCreature("zhertv_blyudo","Жертвенное Блюдо","kitchen",3,2,2,[],"Deathrattle: восстанови 3 здоровья герою.",
+  {deathrattle:(state,playerIdx)=>{ healHero(state,playerIdx,3); log(`Жертвенное Блюдо: +3 здоровья герою.`); }}));
+reg(mkCreature("hranitel_pechi","Хранитель Печи","kitchen",4,3,6,["Provoke"],"Provoke."));
+reg(mkSpell("krov_pir","Кровавый Пир","kitchen",5,"Пожертвуй дружественных существ (сколько выберешь): возьми столько же карт.",
+  (state,playerIdx,_t,sacUids)=>{
+    const list = (sacUids||[]).map(u=>findMinion(state,u)).filter(Boolean);
+    list.forEach(m=>killMinion(state,playerIdx,m,"sacrifice"));
+    for(let i=0;i<list.length;i++) drawCard(state,playerIdx);
+    log(`Кровавый Пир: пожертвовано ${list.length}, взято ${list.length} карт.`);
+    return true;
+  },{needsSacrifice:"multi"}));
+
+/* --- Нейтральные --- */
+reg(mkCreature("gost_lyubopyt","Любопытный Гость","neutral",1,1,2,[],"Ваниль."));
+reg(mkCreature("gost_turist","Гость-Турист","neutral",2,2,3,[],"Ваниль."));
+reg(mkCreature("shumnaya_komp","Шумная Компания","neutral",3,3,2,[],"Ваниль."));
+reg(mkCreature("vip_gost","VIP-Гость","neutral",5,4,6,["Provoke"],"Provoke."));
+reg(mkArtifact("staroe_zerkalo","Старое Зеркало","neutral",3,"Пока в игре: вражеские существа теряют Stealth сразу при появлении."));
+reg(mkArtifact("famil_mangal","Фамильный Мангал","neutral",4,"Пока в игре: первое существо в твой ход стоит на 1 меньше (не ниже 1)."));
+reg(mkArtifact("vinny_pogreb","Винный Погреб-Склеп","neutral",3,"В начале твоего хода восстанови 1 здоровье герою за каждое своё существо с тегом «Вампир»."));
+reg(mkSpell("chesnok","Чеснок","neutral",1,"2 урона существу с тегом «Вампир» (иначе 1 урона любому существу).",
+  (state,playerIdx,targetUid)=>{ const m=findMinion(state,targetUid); if(!m) return false; const dmg = m.tags.has("vampire")?2:1; damageMinion(state,m,dmg,"Чеснок"); return true; },{needsTarget:"any_minion"}));
+reg(mkSpell("svyataya_voda","Святая вода","neutral",2,"3 урона существу с тегом «Вампир» (иначе 1 урона любому существу).",
+  (state,playerIdx,targetUid)=>{ const m=findMinion(state,targetUid); if(!m) return false; const dmg = m.tags.has("vampire")?3:1; damageMinion(state,m,dmg,"Святая вода"); return true; },{needsTarget:"any_minion"}));
+reg(mkSpell("nochnoy_dozor","Ночной Дозор","neutral",2,"Дай существу Provoke до конца хода.",
+  (state,playerIdx,targetUid)=>{ const m=findMinion(state,targetUid); if(!m) return false; m.keywords.add("Provoke"); m.tempProvoke=true; log(`${m.name} получает Provoke до конца хода.`); return true; },{needsTarget:"own_minion"}));
+reg(mkSpell("kol_v_serdce","Кол в сердце","neutral",6,"Уничтожь существо с тегом «Вампир».",
+  (state,playerIdx,targetUid)=>{ const m=findMinion(state,targetUid); if(!m || !m.tags.has("vampire")) return false; killMinion(state, ownerOf(state,m), m, "kol"); log(`Кол в сердце уничтожает ${m.name}.`); return true; },{needsTarget:"vampire_minion"}));
+reg(mkCreature("ohotnik","Охотник","neutral",4,3,4,[],"Наносит на 2 урона больше по существам с тегом «Вампир».",{bonusVsVampire:2}));
+
+/* Deck builder: class cards first (2 copies), then fill with neutral pool (2 copies), trim to 30 */
+const NEUTRAL_ORDER = ["gost_lyubopyt","gost_turist","shumnaya_komp","vip_gost","staroe_zerkalo","famil_mangal","vinny_pogreb","chesnok","svyataya_voda","nochnoy_dozor","kol_v_serdce","ohotnik"];
+const CLASS_ORDER = {
+  night_servant: ["yuny_sluga","bystry_ofic","nochnoy_obhod","smert_ukus","staya_teney","serebr_podnos","bezmolvny_kravchiy"],
+  sommelier: ["molodoy_som","vyderzh_vino","hrust_grafin","smesh_krovi","krov_kupazh","stary_pogrebschik"],
+  kitchen: ["kuh_podmasterye","ritual_nozh","ritual_altar","zhertv_blyudo","hranitel_pechi","krov_pir"],
+};
+function buildDeck(heroCls){
+  const list = [];
+  const addCopies = (id,n)=>{ for(let i=0;i<n && list.length<30;i++) list.push(id); };
+  CLASS_ORDER[heroCls].forEach(id=>addCopies(id,2));
+  NEUTRAL_ORDER.forEach(id=>{ if(list.length<30) addCopies(id,2); });
+  return shuffle(list.slice(0,30));
+}
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+let UID = 1;
+function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function pName(state,idx){ return state.players[idx].heroName; }
+function ownerOf(state,minion){ return state.players[0].board.includes(minion)?0:1; }
+function findMinion(state,uid){
+  for(const p of state.players){ const m=p.board.find(x=>x.uid===uid); if(m) return m; }
+  return null;
+}
+function log(msg){
+  const el = document.getElementById("log");
+  const d = document.createElement("div"); d.innerHTML = msg;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
+  while(el.children.length>60) el.removeChild(el.firstChild);
+}
+
+function makeMinionInstance(cardId, ownerIdx){
+  const c = CARD_DB[cardId];
+  return {
+    uid: UID++,
+    cardId,
+    name: c.name,
+    atk: c.atk, hp: c.hp, maxHp: c.hp,
+    keywords: new Set(c.keywords||[]),
+    tags: new Set(c.tags||[]),
+    canAttack: c.keywords && c.keywords.includes("Charge"),
+    attacked: false,
+    justPlayed: true,
+    frozen: false,
+    shieldUp: c.keywords && c.keywords.includes("Shield"),
+    bonusVsVampire: c.bonusVsVampire||0,
+    deathrattle: c.deathrattle||null,
+  };
+}
+
+function summonToken(state, playerIdx, def){
+  const p = state.players[playerIdx];
+  if(p.board.length>=7){ log(`Поле ${pName(state,playerIdx)} заполнено — токен не призван.`); return; }
+  const m = {
+    uid: UID++, cardId:null, name:def.name, atk:def.atk, hp:def.hp, maxHp:def.hp,
+    keywords:new Set(def.keywords||[]), tags:new Set(def.tags||[]),
+    canAttack: (def.keywords||[]).includes("Charge"), attacked:false, justPlayed:true, frozen:false,
+    shieldUp:(def.keywords||[]).includes("Shield"), bonusVsVampire:0, deathrattle:null,
+  };
+  p.board.push(m);
+  log(`${pName(state,playerIdx)} призывает ${m.name} (${m.atk}/${m.hp}).`);
+}
+
+function healHero(state, idx, amount){
+  const p = state.players[idx];
+  p.hp = Math.min(30, p.hp+amount);
+}
+function damageHero(state, idx, amount){
+  const p = state.players[idx];
+  p.hp -= amount;
+  if(p.hp<=0) endGame(state, 1-idx);
+}
+function damageMinion(state, minion, amount, source){
+  if(minion.shieldUp){ minion.shieldUp=false; log(`${minion.name} блокирует урон Щитом.`); return; }
+  minion.hp -= amount;
+  const ownerIdx = ownerOf(state,minion);
+  if(minion.hp<=0){ killMinion(state, ownerIdx, minion, source); }
+}
+function dealDamageToTarget(state, casterIdx, targetUid, amount){
+  if(targetUid==="hero_0"){ damageHero(state,0,amount); return; }
+  if(targetUid==="hero_1"){ damageHero(state,1,amount); return; }
+  const m = findMinion(state, targetUid); if(m) damageMinion(state,m,amount,"spell");
+}
+function killMinion(state, ownerIdx, minion, source){
+  const p = state.players[ownerIdx];
+  const i = p.board.indexOf(minion);
+  if(i<0) return;
+  p.board.splice(i,1);
+  p.graveyard++;
+  log(`${minion.name} погибает.`);
+  if(minion.deathrattle) minion.deathrattle(state, ownerIdx);
+  if(p.artifacts.has("ritual_altar")) healHero(state, ownerIdx, 1);
+}
+
+/* =========================================================
+   GAME STATE / SETUP
+   ========================================================= */
+let GAME = null;
+
+function newPlayerState(heroId, isAI){
+  const hero = HEROES[heroId];
+  const deckIds = buildDeck(hero.cls);
+  return {
+    heroId, heroName: hero.name, hp: hero.hp, maxMana:0, mana:0,
+    deck: deckIds, hand: [], board: [], graveyard: 0,
+    heroPowerUsedThisTurn:false, buffNextMinion:null, artifacts:new Set(), isAI,
+  };
+}
+
+function startGame(playerHeroId){
+  UID = 1;
+  const aiPool = Object.keys(HEROES).filter(h=>h!==playerHeroId);
+  const aiHeroId = aiPool[Math.floor(Math.random()*aiPool.length)];
+  GAME = {
+    players: [ newPlayerState(playerHeroId,false), newPlayerState(aiHeroId,true) ],
+    turn: 1,
+    activePlayer: 0,
+    selectedHandIdx: null,
+    selectedAttacker: null,
+    pendingTargetMode: null, // {kind, cardId? , handIdx?, sacrifice?}
+    over:false,
+  };
+  document.getElementById("log").innerHTML="";
+  log(`Партия началась! Вы играете за <b>${HEROES[playerHeroId].name}</b> против <b>${HEROES[aiHeroId].name}</b> (ИИ).`);
+  // opening hands
+  for(let i=0;i<3;i++) drawCard(GAME,0);
+  for(let i=0;i<4;i++) drawCard(GAME,1);
+  beginTurn(GAME, 0, true);
+  render();
+}
+
+function drawCard(state, idx){
+  const p = state.players[idx];
+  if(p.deck.length===0){
+    p.fatigue = (p.fatigue||0)+1;
+    damageHero(state, idx, p.fatigue);
+    log(`${pName(state,idx)} берёт урон усталости: ${p.fatigue}.`);
+    return;
+  }
+  const id = p.deck.pop();
+  if(p.hand.length>=10){ log(`Рука ${pName(state,idx)} полна — карта сгорает.`); return; }
+  p.hand.push(id);
+}
+
+function beginTurn(state, idx, firstTurnOfGame){
+  const p = state.players[idx];
+  if(p.maxMana<10) p.maxMana++;
+  let coinBonus = 0;
+  if(idx===1 && p.maxMana===1 && !p.coinUsed){ coinBonus = 1; p.coinUsed = true; }
+  p.mana = p.maxMana + coinBonus;
+  p.heroPowerUsedThisTurn = false;
+  p.buffNextMinion = null;
+  p.firstCreaturePlayedThisTurn = false;
+  p.board.forEach(m=>{
+    m.justPlayed = false;
+    m.attacked = false;
+    m.canAttack = true;
+    if(m.frozen){ m.frozen=false; } else { }
+    if(m.tempProvoke){ m.keywords.delete("Provoke"); m.tempProvoke=false; }
+  });
+  if(p.artifacts.has("vinny_pogreb")){
+    const n = p.board.filter(m=>m.tags.has("vampire")).length;
+    if(n>0) healHero(state, idx, n);
+  }
+  const skipDraw = firstTurnOfGame && idx===0;
+  if(!skipDraw) drawCard(state, idx);
+  log(`— Ход ${state.turn}: ${pName(state,idx)} (${p.mana}/${p.maxMana} маны) —`);
+}
+
+function endGame(state, winnerIdx){
+  if(state.over) return;
+  state.over = true;
+  const you = winnerIdx===0 ? "Вы победили!" : "Вы проиграли.";
+  document.getElementById("overlay-title").textContent = you;
+  document.getElementById("overlay").style.display="flex";
+}
+
+/* =========================================================
+   PLAYER ACTIONS
+   ========================================================= */
+function effectiveCost(state, playerIdx, card){
+  const p = state.players[playerIdx];
+  let cost = card.cost;
+  if(card.type==="creature" && p.artifacts.has("famil_mangal") && !p.firstCreaturePlayedThisTurn){
+    cost = Math.max(1, cost-1);
+  }
+  return cost;
+}
+
+function canPlayCard(state, playerIdx, handIdx){
+  const p = state.players[playerIdx];
+  const card = CARD_DB[p.hand[handIdx]];
+  if(!card) return false;
+  if(effectiveCost(state,playerIdx,card)>p.mana) return false;
+  if(card.type==="creature" && p.board.length>=7) return false;
+  return true;
+}
+
+function playCard(state, playerIdx, handIdx, targetUid, sacUids){
+  const p = state.players[playerIdx];
+  const cardId = p.hand[handIdx];
+  const card = CARD_DB[cardId];
+  if(!card) return false;
+  const cost = effectiveCost(state,playerIdx,card);
+  if(cost>p.mana) return false;
+
+  if(card.type==="spell" && card.needsTarget && !targetUid) return "need_target";
+  if(card.type==="spell" && card.needsSacrifice==="multi" && !sacUids) return "need_sacrifice_multi";
+  if(card.type==="spell" && card.needsSacrifice===true && !sacUids) return "need_sacrifice";
+
+  p.mana -= cost;
+  p.hand.splice(handIdx,1);
+
+  if(card.type==="creature"){
+    if(p.board.length>=7){ log("Поле заполнено."); return false; }
+    const m = makeMinionInstance(cardId, playerIdx);
+    if(p.artifacts.has("serebr_podnos") && card.cost<=1){ m.canAttack = true; m.keywords.add("Charge"); }
+    if(p.artifacts.has("famil_mangal") && !p.firstCreaturePlayedThisTurn){ p.firstCreaturePlayedThisTurn = true; }
+    if(p.buffNextMinion){ m.atk += p.buffNextMinion.atk; m.hp += p.buffNextMinion.hp; m.maxHp += p.buffNextMinion.hp; p.buffNextMinion=null; }
+    p.board.push(m);
+    log(`${pName(state,playerIdx)} играет <b>${card.name}</b> (${m.atk}/${m.hp}).`);
+    if(card.battlecry) card.battlecry(state, playerIdx, m);
+  } else if(card.type==="spell"){
+    const ok = card.effect(state, playerIdx, targetUid, sacUids);
+    if(ok===false){ p.mana += card.cost; p.hand.splice(handIdx,0,cardId); return false; }
+    log(`${pName(state,playerIdx)} разыгрывает заклинание <b>${card.name}</b>.`);
+  } else if(card.type==="artifact"){
+    p.artifacts.add(cardId);
+    log(`${pName(state,playerIdx)} устанавливает артефакт <b>${card.name}</b>.`);
+  }
+  checkFieldCap(state,0); checkFieldCap(state,1);
+  return true;
+}
+
+function checkFieldCap(state, idx){ /* reserved */ }
+
+function useHeroPower(state, playerIdx){
+  const p = state.players[playerIdx];
+  const hero = HEROES[p.heroId];
+  if(p.heroPowerUsedThisTurn || p.mana<hero.power.cost) return false;
+  p.mana -= hero.power.cost;
+  p.heroPowerUsedThisTurn = true;
+  hero.power.use(state, playerIdx);
+  return true;
+}
+
+function enemyHasProvoke(state, defenderIdx){
+  return state.players[defenderIdx].board.some(m=>m.keywords.has("Provoke"));
+}
+
+function attackWith(state, attackerIdx, attackerUid, targetKind, targetUid){
+  const p = state.players[attackerIdx];
+  const defIdx = 1-attackerIdx;
+  const atkM = p.board.find(m=>m.uid===attackerUid);
+  if(!atkM || !atkM.canAttack || atkM.attacked || atkM.frozen) return false;
+
+  const provokers = state.players[defIdx].board.filter(m=>m.keywords.has("Provoke"));
+  if(provokers.length){
+    if(targetKind!=="minion" || !provokers.find(m=>m.uid===targetUid)) return false;
+  }
+
+  atkM.attacked = true;
+  if(!atkM.keywords.has("Charge") && !atkM.tempCharge){ /* normal creatures attack only once anyway */ }
+  atkM.canAttack = false;
+
+  let bonus = 0;
+  if(targetKind==="minion"){
+    const defM = state.players[defIdx].board.find(m=>m.uid===targetUid);
+    if(!defM) return false;
+    if(defM.tags.has("vampire")) bonus = atkM.bonusVsVampire||0;
+    const atkDamage = atkM.atk+bonus;
+    log(`${atkM.name} (${atkM.atk}${bonus?"+"+bonus:""}/${atkM.hp}) атакует ${defM.name} (${defM.atk}/${defM.hp}).`);
+    damageMinion(state, defM, atkDamage, "combat");
+    if(atkM.keywords.has("Poison") && defM.hp>0){ damageMinion(state, defM, 999, "poison"); }
+    // defender still alive deals damage back (unless it died)
+    const stillThere = findMinion(state, defM.uid);
+    if(stillThere){ damageMinion(state, atkM, defM.atk, "combat"); }
+    if(atkM.keywords.has("Lifesteal")){ healHero(state, attackerIdx, atkDamage); onLifesteal(state,attackerIdx,atkM); }
+  } else {
+    damageHero(state, defIdx, atkM.atk);
+    log(`${atkM.name} атакует героя противника на ${atkM.atk}.`);
+    if(atkM.keywords.has("Lifesteal")){ healHero(state, attackerIdx, atkM.atk); onLifesteal(state,attackerIdx,atkM); }
+  }
+  return true;
+}
+function onLifesteal(state, ownerIdx, minion){
+  if(minion.keywords.has("Голод") || minion.hasHunger){
+    minion.atk+=1; minion.hp+=1; minion.maxHp+=1;
+    log(`${minion.name}: Голод — +1/+1 навсегда.`);
+  }
+}
+
+function endTurn(state){
+  if(state.over) return;
+  const finishing = state.activePlayer;
+  state.activePlayer = 1-state.activePlayer;
+  if(state.activePlayer===0) state.turn++;
+  beginTurn(state, state.activePlayer, false);
+  render();
+  if(state.players[state.activePlayer].isAI && !state.over){
+    setTimeout(()=>{ runAI(state); }, 500);
+  }
+}
+
+/* =========================================================
+   SIMPLE AI
+   ========================================================= */
+function runAI(state){
+  const idx = state.activePlayer;
+  const p = state.players[idx];
+  if(state.over) return;
+
+  // play cards greedily by cost desc while affordable
+  let guard=0;
+  while(guard++<20){
+    let played=false;
+    const playable = p.hand
+      .map((id,i)=>({id,i,card:CARD_DB[id]}))
+      .filter(x=>x.card.cost<=p.mana && (x.card.type!=="creature" || p.board.length<7))
+      .sort((a,b)=>b.card.cost-a.card.cost);
+    if(!playable.length) break;
+    const choice = playable[0];
+    if(choice.card.type==="spell"){
+      let targetUid=null, sacUids=null;
+      if(choice.card.needsTarget==="vampire_minion"){
+        const t = state.players[1-idx].board.find(m=>m.tags.has("vampire"));
+        if(!t){ p.hand.splice(choice.i,1); continue; }
+        targetUid=t.uid;
+      } else if(choice.card.needsTarget==="any_minion"){
+        const enemyVamp = state.players[1-idx].board.find(m=>m.tags.has("vampire"));
+        const anyEnemy = state.players[1-idx].board[0];
+        const t = enemyVamp||anyEnemy;
+        if(t) targetUid=t.uid;
+      } else if(choice.card.needsTarget==="own_minion"){
+        const t = p.board[p.board.length-1];
+        if(!t){ p.hand.splice(choice.i,1); continue; }
+        targetUid=t.uid;
+      } else if(choice.card.needsTarget==="any"){
+        targetUid = "hero_"+(1-idx);
+      }
+      if(choice.card.needsSacrifice===true){
+        const sac = p.board[0];
+        if(!sac){ p.hand.splice(choice.i,1); continue; }
+        sacUids=sac.uid;
+      } else if(choice.card.needsSacrifice==="multi"){
+        sacUids=[]; // AI plays it conservatively: sac nothing extra unless it has spare tokens
+      }
+      const res = playCard(state, idx, choice.i, targetUid, sacUids);
+      played = res===true;
+    } else {
+      const res = playCard(state, idx, choice.i);
+      played = res===true;
+    }
+    if(!played) { break; }
+    render();
+  }
+
+  if(!p.heroPowerUsedThisTurn && p.mana>=HEROES[p.heroId].power.cost && Math.random()<0.6){
+    useHeroPower(state, idx);
+    render();
+  }
+
+  // attacks
+  const attackers = p.board.filter(m=>m.canAttack && !m.attacked && !m.frozen);
+  const defIdx = 1-idx;
+  attackers.forEach(atkM=>{
+    if(state.over) return;
+    const provokers = state.players[defIdx].board.filter(m=>m.keywords.has("Provoke"));
+    if(provokers.length){
+      const target = provokers.reduce((a,b)=>a.hp<b.hp?a:b);
+      attackWith(state, idx, atkM.uid, "minion", target.uid);
+      return;
+    }
+    // prefer a favorable trade
+    const enemyMinions = state.players[defIdx].board.filter(m=>!m.keywords.has("Stealth"));
+    const goodTrade = enemyMinions.find(m => atkM.atk>=m.hp && m.atk<atkM.hp);
+    if(goodTrade){ attackWith(state, idx, atkM.uid, "minion", goodTrade.uid); }
+    else { attackWith(state, idx, atkM.uid, "hero", "hero_"+idx); }
+  });
+
+  render();
+  setTimeout(()=>{ if(!state.over) endTurn(state); }, 600);
+}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+function cardMiniHtml(m, ownerIdx){
+  const kws = [...m.keywords].join(" · ");
+  const classes = ["mini"];
+  if(m.justPlayed && !m.canAttack) classes.push("sick");
+  if(m.frozen) classes.push("frozen");
+  if(m.keywords.has("Stealth")) classes.push("stealth");
+  return `<div class="${classes.join(' ')}" data-uid="${m.uid}" data-owner="${ownerIdx}">
+    ${m.shieldUp?'<div class="shield-badge">🛡</div>':''}
+    <div class="mname">${m.name}</div>
+    <div class="mkw">${kws}</div>
+    <div class="mstats"><span class="matk mono">${m.atk}</span><span class="mhp mono">${m.hp}</span></div>
+  </div>`;
+}
+
+function handCardHtml(cardId, idx, playable){
+  const c = CARD_DB[cardId];
+  const statsHtml = c.type==="creature" ? `<div class="hstats"><span class="mono">${c.atk}</span><span class="mono">${c.hp}</span></div>` : "";
+  return `<div class="hcard ${playable?'playable':'not-playable'}" data-idx="${idx}" data-type="${c.type}">
+    <div class="cost mono">${c.cost}</div>
+    <div class="hname display">${c.name}</div>
+    <div class="htype">${c.type==="creature"?CLASSES[c.cls]||"Нейтральный":c.type==="spell"?"Заклинание":"Артефакт"}</div>
+    <div class="hrules">${c.text}</div>
+    ${statsHtml}
+  </div>`;
+}
+
+function render(){
+  if(!GAME) return;
+  const state = GAME;
+  const you = state.players[0], ai = state.players[1];
+  const myTurn = state.activePlayer===0 && !state.over;
+
+  document.getElementById("turn-indicator").textContent = `Ход ${state.turn} — ${myTurn?"ваш ход":"ход противника"}`;
+  document.getElementById("end-turn-btn").disabled = !myTurn;
+
+  const heroPowerBtnHtml = (p, idx, usable)=>{
+    const hero = HEROES[p.heroId];
+    return `<button class="hero-power-btn ${usable?'usable':''}" id="power-btn-${idx}" ${usable?'':'disabled'} title="${hero.power.text}">
+      ${hero.power.name} (${hero.power.cost})
+    </button>`;
+  };
+
+  document.getElementById("enemy-hero-row").innerHTML = `
+    <div class="hero-badge" data-hero-target="1">
+      <span class="name">${ai.heroName} (ИИ)</span>
+      <span class="hp-pill">❤ <span class="mono">${ai.hp}</span></span>
+      <span class="mana-pill">💧 <span class="mono">${ai.mana}/${ai.maxMana}</span></span>
+      <span class="deck-count">Колода: ${ai.deck.length}</span>
+    </div>`;
+  document.getElementById("player-hero-row").innerHTML = `
+    <div class="hero-badge" data-hero-target="0">
+      <span class="name">${you.heroName}</span>
+      <span class="hp-pill">❤ <span class="mono">${you.hp}</span></span>
+      <span class="mana-pill">💧 <span class="mono">${you.mana}/${you.maxMana}</span></span>
+      ${heroPowerBtnHtml(you,0, myTurn && !you.heroPowerUsedThisTurn && you.mana>=HEROES[you.heroId].power.cost)}
+      <span class="deck-count">Колода: ${you.deck.length}</span>
+    </div>`;
+
+  document.getElementById("enemy-board").innerHTML = ai.board.map(m=>cardMiniHtml(m,1)).join("") || `<span class="deck-count">Поле пусто</span>`;
+  document.getElementById("player-board").innerHTML = you.board.map(m=>cardMiniHtml(m,0)).join("") || `<span class="deck-count">Поле пусто</span>`;
+
+  document.getElementById("player-hand").innerHTML = you.hand.map((id,i)=>handCardHtml(id,i, myTurn && canPlayCard(state,0,i))).join("");
+
+  let hint = "";
+  if(state.pendingTargetMode) hint = state.pendingTargetMode.hintText || "Выбери цель…";
+  else if(state.selectedAttacker) hint = "Выбери цель для атаки (клик по существу или по гербу героя).";
+  document.getElementById("hint").textContent = hint;
+
+  // selection highlight
+  if(state.selectedAttacker){
+    document.querySelectorAll(`.mini[data-uid="${state.selectedAttacker}"]`).forEach(el=>el.classList.add("selected"));
+  }
+
+  attachHandlers();
+}
+
+/* =========================================================
+   INPUT HANDLING
+   ========================================================= */
+function attachHandlers(){
+  document.querySelectorAll(".hcard").forEach(el=>{
+    el.onclick = ()=>{
+      if(GAME.activePlayer!==0 || GAME.over) return;
+      const idx = parseInt(el.dataset.idx,10);
+      const cardId = GAME.players[0].hand[idx];
+      const card = CARD_DB[cardId];
+      if(!canPlayCard(GAME,0,idx)) return;
+      if(card.type==="creature" || (card.type==="spell" && !card.needsTarget && !card.needsSacrifice) || card.type==="artifact"){
+        playCard(GAME,0,idx);
+        render();
+        return;
+      }
+      // needs target/sacrifice: enter targeting mode
+      GAME.pendingTargetMode = { handIdx: idx, card, hintText: (card.needsSacrifice ? "Выбери своё существо для жертвы." : "Выбери цель.") + " (Esc — отмена)" };
+      render();
+    };
+  });
+
+  document.querySelectorAll(".mini").forEach(el=>{
+    el.onclick = ()=>{
+      if(GAME.over) return;
+      const uid = parseInt(el.dataset.uid,10);
+      const ownerIdx = parseInt(el.dataset.owner,10);
+
+      if(GAME.pendingTargetMode){
+        resolvePendingTarget(uid, ownerIdx);
+        return;
+      }
+      if(GAME.activePlayer!==0) return;
+
+      if(ownerIdx===0){
+        // select own creature to attack, or is it a sacrifice-less normal select
+        const m = GAME.players[0].board.find(x=>x.uid===uid);
+        if(m && m.canAttack && !m.attacked && !m.frozen){
+          GAME.selectedAttacker = uid;
+          render();
+        }
+        return;
+      } else {
+        // clicked enemy minion -> if attacker selected, attack
+        if(GAME.selectedAttacker!=null){
+          attackWith(GAME, 0, GAME.selectedAttacker, "minion", uid);
+          GAME.selectedAttacker=null;
+          render();
+          checkGameEndAfterAction();
+        }
+      }
+    };
+  });
+
+  document.querySelectorAll("[data-hero-target]").forEach(el=>{
+    el.onclick = ()=>{
+      if(GAME.over) return;
+      const idx = parseInt(el.dataset.heroTarget,10);
+      if(GAME.pendingTargetMode){
+        resolvePendingTarget("hero_"+idx, idx);
+        return;
+      }
+      if(idx===1 && GAME.selectedAttacker!=null && GAME.activePlayer===0){
+        attackWith(GAME, 0, GAME.selectedAttacker, "hero", "hero_1");
+        GAME.selectedAttacker=null;
+        render();
+        checkGameEndAfterAction();
+      }
+    };
+  });
+
+  const p0btn = document.getElementById("power-btn-0");
+  if(p0btn) p0btn.onclick = (e)=>{ e.stopPropagation(); if(GAME.activePlayer===0){ useHeroPower(GAME,0); render(); } };
+}
+
+function resolvePendingTarget(uid, ownerIdx){
+  const mode = GAME.pendingTargetMode;
+  const card = mode.card;
+  if(card.needsSacrifice===true && mode.sacUid===undefined){
+    if(ownerIdx!==0 || typeof uid!=="number") return;
+    mode.sacUid = uid;
+    if(card.needsTarget){
+      mode.hintText = "Теперь выбери цель для эффекта. (Esc — отмена)";
+      render();
+      return;
+    }
+    playCard(GAME,0,mode.handIdx, null, mode.sacUid);
+    GAME.pendingTargetMode=null; render(); checkGameEndAfterAction(); return;
+  }
+  if(card.needsSacrifice==="multi"){
+    mode.sacList = mode.sacList||[];
+    if(ownerIdx===0 && typeof uid==="number"){
+      const i = mode.sacList.indexOf(uid);
+      if(i>=0) mode.sacList.splice(i,1); else mode.sacList.push(uid);
+      mode.hintText = `Выбрано для жертвы: ${mode.sacList.length}. Кликни ещё раз по карте в руке, чтобы подтвердить.`;
+      render();
+      return;
+    }
+  }
+  if(card.needsTarget==="own_minion" && ownerIdx!==0) return;
+  if(card.needsTarget==="any_minion" && typeof uid!=="number") return;
+  if(card.needsTarget==="vampire_minion"){
+    const m = findMinion(GAME, uid);
+    if(!m || !m.tags.has("vampire")) { log("Цель должна иметь тег «Вампир»."); return; }
+  }
+  const sacToPass = mode.sacUid!==undefined ? mode.sacUid : mode.sacList;
+  playCard(GAME,0,mode.handIdx, uid, sacToPass);
+  GAME.pendingTargetMode=null;
+  render();
+  checkGameEndAfterAction();
+}
+
+document.addEventListener("keydown",(e)=>{
+  if(e.key==="Escape" && GAME && GAME.pendingTargetMode){
+    GAME.pendingTargetMode=null;
+    render();
+  }
+});
+
+// allow confirming multi-sacrifice by clicking the pending hand card again
+document.addEventListener("click",(e)=>{
+  const hc = e.target.closest(".hcard");
+  if(hc && GAME && GAME.pendingTargetMode && GAME.pendingTargetMode.card.needsSacrifice==="multi"){
+    const idx = parseInt(hc.dataset.idx,10);
+    if(idx===GAME.pendingTargetMode.handIdx){
+      playCard(GAME,0,idx,null,GAME.pendingTargetMode.sacList||[]);
+      GAME.pendingTargetMode=null;
+      render();
+    }
+  }
+});
+
+function checkGameEndAfterAction(){
+  if(GAME.players[0].hp<=0) endGame(GAME,1);
+  if(GAME.players[1].hp<=0) endGame(GAME,0);
+}
+
+document.getElementById("end-turn-btn").onclick = ()=>{ if(GAME.activePlayer===0 && !GAME.over) endTurn(GAME); };
+document.getElementById("overlay-btn").onclick = ()=>{
+  document.getElementById("overlay").style.display="none";
+  document.getElementById("screen-game").style.display="none";
+  document.getElementById("screen-select").style.display="block";
+};
+
+/* =========================================================
+   HERO SELECT SCREEN
+   ========================================================= */
+function renderHeroSelect(){
+  const grid = document.getElementById("hero-grid");
+  grid.innerHTML = Object.values(HEROES).map(h=>`
+    <div class="hero-card" data-hero="${h.id}">
+      <h3 class="display">${h.name}</h3>
+      <div class="hp">Здоровье: ${h.hp}</div>
+      <div class="power"><b>${h.power.name}</b> (${h.power.cost}) — ${h.power.text}</div>
+    </div>
+  `).join("");
+  grid.querySelectorAll(".hero-card").forEach(el=>{
+    el.onclick = ()=>{
+      document.getElementById("screen-select").style.display="none";
+      document.getElementById("screen-game").style.display="flex";
+      startGame(el.dataset.hero);
+    };
+  });
+}
+renderHeroSelect();
+</script>
+</body>
+</html>
