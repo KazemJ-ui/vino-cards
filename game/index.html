@@ -370,6 +370,7 @@ reg(mkCreature("bezmolvny_kravchiy","Безмолвный Кравчий","night
 
 /* --- Кровавый Сомелье --- */
 reg(mkCreature("molodoy_som","Молодой Сомелье","sommelier",1,1,3,[],"Ваниль."));
+reg(mkCreature("uchenik_stoyki","Ученик за Стойкой","sommelier",2,2,2,[],"Ваниль."));
 reg(mkSpell("vyderzh_vino","Выдержанное Вино","sommelier",2,"Дай существу +2/+2 навсегда.",
   (state,playerIdx,targetUid)=>{ const m=findMinion(state,targetUid); if(!m) return false; const bonus=state.players[playerIdx].artifacts.has("hrust_grafin")?1:0; const amt=2+bonus; m.atk+=amt; m.hp+=amt; m.maxHp+=amt; log(`${m.name} получает +${amt}/+${amt}.`); return true; },{needsTarget:"own_minion"}));
 reg(mkArtifact("hrust_grafin","Хрустальный Графин","sommelier",3,"Пока в игре: твои баффы +X/+X дают на +1/+1 больше."));
@@ -380,6 +381,7 @@ reg(mkCreature("krov_kupazh","Кровавый Купаж","sommelier",4,3,5,[],
 reg(mkCreature("stary_pogrebschik","Старый Погребщик","sommelier",5,4,6,["Shield"],"Shield."));
 
 /* --- Хранитель Ритуальной Кухни --- */
+reg(mkCreature("sudomoyka","Судомойка","kitchen",1,1,3,[],"Ваниль."));
 reg(mkCreature("kuh_podmasterye","Кухонный Подмастерье","kitchen",2,1,4,[],"Ваниль."));
 reg(mkSpell("ritual_nozh","Ритуальный Нож","kitchen",2,"Пожертвуй дружественное существо: нанеси 3 урона любой цели.",
   (state,playerIdx,targetUid,sacUid)=>{
@@ -404,7 +406,9 @@ reg(mkSpell("krov_pir","Кровавый Пир","kitchen",5,"Пожертвуй
 
 /* --- Нейтральные --- */
 reg(mkCreature("gost_lyubopyt","Любопытный Гость","neutral",1,1,2,[],"Ваниль."));
+reg(mkCreature("yuny_raznoschik","Юный Разносчик","neutral",1,2,1,[],"Ваниль."));
 reg(mkCreature("gost_turist","Гость-Турист","neutral",2,2,3,[],"Ваниль."));
+reg(mkCreature("smotritel_zala","Смотритель Зала","neutral",2,3,2,[],"Ваниль."));
 reg(mkCreature("shumnaya_komp","Шумная Компания","neutral",3,3,2,[],"Ваниль."));
 reg(mkCreature("vip_gost","VIP-Гость","neutral",5,4,6,["Provoke"],"Provoke."));
 reg(mkArtifact("staroe_zerkalo","Старое Зеркало","neutral",3,"Пока в игре: вражеские существа теряют Stealth сразу при появлении."));
@@ -422,18 +426,19 @@ reg(mkCreature("ohotnik","Охотник","neutral",4,3,4,[],"Наносит н�
 
 const RARITY = {
   yuny_sluga:"common", bystry_ofic:"common", nochnoy_obhod:"common", smert_ukus:"rare", staya_teney:"rare", serebr_podnos:"rare", bezmolvny_kravchiy:"rare",
-  molodoy_som:"common", vyderzh_vino:"common", hrust_grafin:"rare", smesh_krovi:"rare", krov_kupazh:"rare", stary_pogrebschik:"rare",
-  kuh_podmasterye:"common", ritual_nozh:"common", ritual_altar:"rare", zhertv_blyudo:"common", hranitel_pechi:"rare", krov_pir:"rare",
-  gost_lyubopyt:"common", gost_turist:"common", shumnaya_komp:"common", vip_gost:"rare", staroe_zerkalo:"rare", famil_mangal:"rare",
+  molodoy_som:"common", uchenik_stoyki:"common", vyderzh_vino:"common", hrust_grafin:"rare", smesh_krovi:"rare", krov_kupazh:"rare", stary_pogrebschik:"rare",
+  sudomoyka:"common", kuh_podmasterye:"common", ritual_nozh:"common", ritual_altar:"rare", zhertv_blyudo:"common", hranitel_pechi:"rare", krov_pir:"rare",
+  gost_lyubopyt:"common", yuny_raznoschik:"common", gost_turist:"common", smotritel_zala:"common", shumnaya_komp:"common", vip_gost:"rare", staroe_zerkalo:"rare", famil_mangal:"rare",
   vinny_pogreb:"rare", chesnok:"common", svyataya_voda:"common", nochnoy_dozor:"common", kol_v_serdce:"rare", ohotnik:"rare",
 };
 
-/* Deck builder: class cards first (2 copies), then fill with neutral pool (2 copies), trim to 30 */
-const NEUTRAL_ORDER = ["gost_lyubopyt","gost_turist","shumnaya_komp","vip_gost","staroe_zerkalo","famil_mangal","vinny_pogreb","chesnok","svyataya_voda","nochnoy_dozor","kol_v_serdce","ohotnik"];
+/* Deck builder: class cards first (2 copies), then fill with neutral pool (2 copies), trim to 30.
+   Cheap creatures are listed first in each list so they reliably make the cut. */
+const NEUTRAL_ORDER = ["gost_lyubopyt","yuny_raznoschik","gost_turist","smotritel_zala","shumnaya_komp","vip_gost","staroe_zerkalo","famil_mangal","vinny_pogreb","chesnok","svyataya_voda","nochnoy_dozor","kol_v_serdce","ohotnik"];
 const CLASS_ORDER = {
   night_servant: ["yuny_sluga","bystry_ofic","nochnoy_obhod","smert_ukus","staya_teney","serebr_podnos","bezmolvny_kravchiy"],
-  sommelier: ["molodoy_som","vyderzh_vino","hrust_grafin","smesh_krovi","krov_kupazh","stary_pogrebschik"],
-  kitchen: ["kuh_podmasterye","ritual_nozh","ritual_altar","zhertv_blyudo","hranitel_pechi","krov_pir"],
+  sommelier: ["molodoy_som","uchenik_stoyki","vyderzh_vino","hrust_grafin","smesh_krovi","krov_kupazh","stary_pogrebschik"],
+  kitchen: ["sudomoyka","kuh_podmasterye","ritual_nozh","ritual_altar","zhertv_blyudo","hranitel_pechi","krov_pir"],
 };
 function buildDeck(heroCls){
   const list = [];
