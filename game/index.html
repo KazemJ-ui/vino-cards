@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Вино &amp; Хинкали: Ночная смена — прототип</title>
 <style>
 :root{
@@ -10,7 +10,7 @@
   --bg:#120a10; --bg2:#1c1017; --fg:#ece2d2; --muted:#a3907a; --line:rgba(236,226,210,.14);
 }
 *{box-sizing:border-box;}
-html,body{margin:0;padding:0;height:100%;}
+html,body{margin:0;padding:0;height:100%;overscroll-behavior:none;-webkit-user-select:none;user-select:none;}
 body{
   background:radial-gradient(ellipse 900px 500px at 15% -10%, var(--bg2), transparent 60%), var(--bg);
   color:var(--fg); font-family:system-ui,-apple-system,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased;
@@ -37,7 +37,7 @@ h1,h2,h3{ margin:0; }
 .hero-card .power b{ color:var(--gold); }
 
 /* ---------- Board ---------- */
-#screen-game{ display:none; height:100vh; flex-direction:column; }
+#screen-game{ display:none; height:100dvh; flex-direction:column; overscroll-behavior:contain; touch-action:pan-x pan-y; }
 .zone{ display:flex; align-items:center; justify-content:center; gap:10px; padding:8px 10px; position:relative; }
 #enemy-hero-row, #player-hero-row{ padding:6px 14px; }
 .hero-badge{
@@ -75,47 +75,90 @@ h1,h2,h3{ margin:0; }
 }
 #end-turn-btn:disabled{ opacity:.4; cursor:not-allowed; }
 
+/* ---- shared card visual pieces (art seal, rarity, stat badges) ---- */
+.display{ font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif; }
+.art-panel{
+  position:relative; border-radius:6px; overflow:hidden; min-height:0;
+  background:repeating-linear-gradient(115deg,#1c0f18 0 2px,#241228 2px 4px);
+  display:flex; align-items:center; justify-content:center;
+  border:1px solid rgba(0,0,0,.4);
+}
+.art-seal{
+  width:56%; aspect-ratio:1; max-width:38px; border-radius:50%;
+  border:2px solid var(--gold); display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.16), rgba(0,0,0,.32));
+  color:var(--gold); box-shadow:inset 0 0 0 1px rgba(0,0,0,.3);
+}
+.rarity-diamond{ width:9px; height:9px; min-width:9px; transform:rotate(45deg); border:1.4px solid var(--gold); background:transparent; }
+.rarity-diamond.rare{ background:var(--wine); }
+
+.stat-badge{ position:relative; width:24px; height:24px; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+.stat-badge span{ position:relative; z-index:2; font-weight:700; font-size:.62rem; color:#f4e9d8; }
+.stat-badge.atk::before{
+  content:""; position:absolute; inset:0; background:var(--ink);
+  clip-path:polygon(50% 0%,100% 42%,76% 42%,76% 100%,24% 100%,24% 42%,0% 42%);
+  box-shadow:0 0 0 1px var(--gold);
+}
+.stat-badge.hp::before{
+  content:""; position:absolute; inset:0; background:var(--wine);
+  clip-path:polygon(50% 18%,61% 6%,76% 6%,90% 20%,90% 38%,50% 90%,10% 38%,10% 20%,24% 6%,39% 6%);
+  filter:drop-shadow(0 0 1px var(--gold));
+}
+.type-pill{ font-size:.52rem; text-transform:uppercase; letter-spacing:.05em; border:1px solid var(--gold); border-radius:5px; padding:2px 6px; opacity:.85; }
+
 /* mini card (board minion) */
 .mini{
-  width:82px; height:96px; border-radius:8px; position:relative; padding:5px;
+  width:92px; height:128px; border-radius:9px; position:relative; padding:5px;
   background:linear-gradient(165deg,var(--midnight),#0c0710);
-  border:1.5px solid var(--gold); display:flex; flex-direction:column; justify-content:space-between;
-  cursor:pointer; transition:transform .12s ease, box-shadow .12s ease; user-select:none;
+  border:1.5px solid var(--gold); display:flex; flex-direction:column; gap:3px;
+  cursor:grab; transition:transform .12s ease, box-shadow .12s ease; user-select:none; touch-action:none;
 }
+.mini .art-panel{ flex:1 1 auto; }
+.mini .art-seal{ max-width:32px; font-size:.8rem; }
 .mini:hover{ transform:translateY(-3px); }
 .mini.selectable{ box-shadow:0 0 0 2px #6fd66f; }
 .mini.selected{ box-shadow:0 0 0 3px #d9a94d; transform:translateY(-6px); }
 .mini.sick{ opacity:.55; }
 .mini.frozen{ filter:grayscale(.3) brightness(.8); box-shadow:0 0 0 2px #5cc8e8 inset; }
 .mini.stealth{ opacity:.5; border-style:dashed; }
-.mini .mname{ font-size:.58rem; line-height:1.1; text-align:center; }
-.mini .mkw{ font-size:.5rem; text-align:center; color:var(--gold); min-height:.6rem; }
-.mini .mstats{ display:flex; justify-content:space-between; font-size:.72rem; font-weight:700; }
-.mini .matk{ color:#f1e6cd; }
-.mini .mhp{ color:#ffb0b0; }
-.mini .shield-badge{ position:absolute; top:2px; right:2px; font-size:.6rem; }
+.mini.dragging{ opacity:.25; }
+.mini.drop-hover{ box-shadow:0 0 0 3px #ff5a5a; }
+.mini .mname{ font-size:.56rem; line-height:1.1; text-align:center; }
+.mini .mkw{ font-size:.46rem; text-align:center; color:var(--gold); min-height:.55rem; }
+.mini .mstats{ display:flex; justify-content:space-between; align-items:center; }
+.mini .shield-badge{ position:absolute; top:2px; right:2px; font-size:.6rem; z-index:3; }
 
 /* hand card */
 .hcard{
-  width:110px; height:150px; border-radius:10px; position:relative; padding:8px; cursor:pointer;
+  width:126px; height:174px; border-radius:11px; position:relative; padding:7px; cursor:grab;
   border:1.5px solid var(--gold); display:flex; flex-direction:column; gap:4px; transition:transform .15s ease;
-  box-shadow:0 6px 14px -8px rgba(0,0,0,.6);
+  box-shadow:0 6px 14px -8px rgba(0,0,0,.6); user-select:none; touch-action:none;
 }
 .hcard:hover{ transform:translateY(-14px); z-index:5; }
 .hcard.playable{ box-shadow:0 0 0 2px #6fd66f, 0 6px 14px -8px rgba(0,0,0,.6); }
-.hcard.not-playable{ opacity:.55; }
-.hcard[data-type="creature"]{ background:linear-gradient(165deg,var(--dusk),#2a1626); }
+.hcard.not-playable{ opacity:.55; cursor:default; }
+.hcard.dragging{ opacity:.2; }
+.hcard[data-type="creature"]{ background:linear-gradient(165deg,var(--dusk),#241220); }
 .hcard[data-type="spell"]{ background:linear-gradient(165deg,#2a1e3d,#1a1230); }
 .hcard[data-type="artifact"]{ background:linear-gradient(165deg,#332417,#1c140c); }
+.hcard .htop{ display:flex; justify-content:space-between; align-items:flex-start; }
 .hcard .cost{
-  position:absolute; top:-6px; left:-6px; width:26px; height:26px; border-radius:50%;
+  width:24px; height:24px; border-radius:50%;
   background:var(--wine); border:1.5px solid var(--gold); display:flex; align-items:center; justify-content:center;
-  font-weight:700; font-size:.8rem;
+  font-weight:700; font-size:.75rem; flex:0 0 auto;
 }
-.hcard .hname{ font-size:.68rem; font-weight:600; margin-top:14px; text-align:center; line-height:1.15; }
-.hcard .htype{ font-size:.52rem; text-transform:uppercase; letter-spacing:.05em; opacity:.7; text-align:center; }
-.hcard .hrules{ font-size:.56rem; line-height:1.25; flex:1; overflow:hidden; opacity:.92; }
-.hcard .hstats{ display:flex; justify-content:space-between; font-size:.75rem; font-weight:700; }
+.hcard .art-panel{ height:44px; }
+.hcard .art-seal{ max-width:30px; font-size:.75rem; }
+.hcard .hname{ font-size:.66rem; font-weight:600; text-align:center; line-height:1.15; }
+.hcard .htype{ font-size:.5rem; text-transform:uppercase; letter-spacing:.05em; opacity:.7; text-align:center; }
+.hcard .hrules{ font-size:.55rem; line-height:1.24; flex:1; overflow:hidden; opacity:.92; }
+.hcard .hstats{ display:flex; justify-content:space-between; margin-top:auto; }
+
+/* drag ghost */
+#drag-ghost{
+  position:fixed; pointer-events:none; z-index:200; transform:translate(-50%,-50%) scale(1.06);
+  filter:drop-shadow(0 10px 18px rgba(0,0,0,.6)); display:none; touch-action:none;
+}
 
 #log{
   position:fixed; right:10px; bottom:10px; width:280px; max-height:180px; overflow-y:auto;
@@ -159,6 +202,7 @@ h1,h2,h3{ margin:0; }
   <div class="hand-row" id="player-hand"></div>
 </div>
 
+<div id="drag-ghost"></div>
 <div id="log"></div>
 
 <div id="overlay">
@@ -280,6 +324,14 @@ reg(mkSpell("nochnoy_dozor","Ночной Дозор","neutral",2,"Дай сущ
 reg(mkSpell("kol_v_serdce","Кол в сердце","neutral",6,"Уничтожь существо с тегом «Вампир».",
   (state,playerIdx,targetUid)=>{ const m=findMinion(state,targetUid); if(!m || !m.tags.has("vampire")) return false; killMinion(state, ownerOf(state,m), m, "kol"); log(`Кол в сердце уничтожает ${m.name}.`); return true; },{needsTarget:"vampire_minion"}));
 reg(mkCreature("ohotnik","Охотник","neutral",4,3,4,[],"Наносит на 2 урона больше по существам с тегом «Вампир».",{bonusVsVampire:2}));
+
+const RARITY = {
+  yuny_sluga:"common", bystry_ofic:"common", nochnoy_obhod:"common", smert_ukus:"rare", staya_teney:"rare", serebr_podnos:"rare", bezmolvny_kravchiy:"rare",
+  molodoy_som:"common", vyderzh_vino:"common", hrust_grafin:"rare", smesh_krovi:"rare", krov_kupazh:"rare", stary_pogrebschik:"rare",
+  kuh_podmasterye:"common", ritual_nozh:"common", ritual_altar:"rare", zhertv_blyudo:"common", hranitel_pechi:"rare", krov_pir:"rare",
+  gost_lyubopyt:"common", gost_turist:"common", shumnaya_komp:"common", vip_gost:"rare", staroe_zerkalo:"rare", famil_mangal:"rare",
+  vinny_pogreb:"rare", chesnok:"common", svyataya_voda:"common", nochnoy_dozor:"common", kol_v_serdce:"rare", ohotnik:"rare",
+};
 
 /* Deck builder: class cards first (2 copies), then fill with neutral pool (2 copies), trim to 30 */
 const NEUTRAL_ORDER = ["gost_lyubopyt","gost_turist","shumnaya_komp","vip_gost","staroe_zerkalo","famil_mangal","vinny_pogreb","chesnok","svyataya_voda","nochnoy_dozor","kol_v_serdce","ohotnik"];
@@ -678,19 +730,33 @@ function cardMiniHtml(m, ownerIdx){
   if(m.keywords.has("Stealth")) classes.push("stealth");
   return `<div class="${classes.join(' ')}" data-uid="${m.uid}" data-owner="${ownerIdx}">
     ${m.shieldUp?'<div class="shield-badge">🛡</div>':''}
+    <div class="art-panel"><div class="art-seal display">${m.name[0]}</div></div>
     <div class="mname">${m.name}</div>
     <div class="mkw">${kws}</div>
-    <div class="mstats"><span class="matk mono">${m.atk}</span><span class="mhp mono">${m.hp}</span></div>
+    <div class="mstats">
+      <div class="stat-badge atk"><span class="mono">${m.atk}</span></div>
+      <div class="stat-badge hp"><span class="mono">${m.hp}</span></div>
+    </div>
   </div>`;
 }
 
 function handCardHtml(cardId, idx, playable){
   const c = CARD_DB[cardId];
-  const statsHtml = c.type==="creature" ? `<div class="hstats"><span class="mono">${c.atk}</span><span class="mono">${c.hp}</span></div>` : "";
+  const rarity = RARITY[cardId]||"common";
+  const statsHtml = c.type==="creature"
+    ? `<div class="hstats">
+         <div class="stat-badge atk"><span class="mono">${c.atk}</span></div>
+         <div class="stat-badge hp"><span class="mono">${c.hp}</span></div>
+       </div>`
+    : `<div class="hstats"><span class="type-pill">${c.type==="spell"?"Заклинание":"Артефакт"}</span></div>`;
   return `<div class="hcard ${playable?'playable':'not-playable'}" data-idx="${idx}" data-type="${c.type}">
-    <div class="cost mono">${c.cost}</div>
+    <div class="htop">
+      <div class="cost mono">${c.cost}</div>
+      <div class="rarity-diamond ${rarity}"></div>
+    </div>
+    <div class="art-panel"><div class="art-seal display">${c.name[0]}</div></div>
     <div class="hname display">${c.name}</div>
-    <div class="htype">${c.type==="creature"?CLASSES[c.cls]||"Нейтральный":c.type==="spell"?"Заклинание":"Артефакт"}</div>
+    <div class="htype">${c.type==="creature"?(CLASSES[c.cls]||"Нейтральный"):(c.type==="spell"?"Заклинание":"Артефакт")}</div>
     <div class="hrules">${c.text}</div>
     ${statsHtml}
   </div>`;
@@ -747,11 +813,146 @@ function render(){
 }
 
 /* =========================================================
-   INPUT HANDLING
+   DRAG & DROP (Pointer Events — works for touch and mouse)
+   ========================================================= */
+let dragState = null;
+const ghostEl = document.getElementById("drag-ghost");
+
+function showGhost(sourceEl, x, y){
+  ghostEl.innerHTML = sourceEl.outerHTML;
+  ghostEl.style.width = sourceEl.offsetWidth+"px";
+  ghostEl.style.display = "block";
+  positionGhost(x,y);
+}
+function positionGhost(x,y){ ghostEl.style.left = x+"px"; ghostEl.style.top = y+"px"; }
+function hideGhost(){ ghostEl.style.display = "none"; ghostEl.innerHTML=""; }
+
+let lastHoverEl = null;
+function updateDropHighlight(x,y){
+  const el = document.elementFromPoint(x,y);
+  const target = el && (el.closest(".mini") || el.closest("[data-hero-target]"));
+  if(lastHoverEl && lastHoverEl!==target) lastHoverEl.classList.remove("drop-hover");
+  if(target){ target.classList.add("drop-hover"); }
+  lastHoverEl = target;
+}
+function clearDropHighlight(){ if(lastHoverEl) lastHoverEl.classList.remove("drop-hover"); lastHoverEl=null; }
+
+function initDrag(el, kind, payload){
+  el.addEventListener("pointerdown", (e)=>{
+    if(GAME.over) return;
+    if(kind==="hand"){
+      if(GAME.activePlayer!==0 || !canPlayCard(GAME,0,payload.idx)) return;
+    } else if(kind==="attack"){
+      if(GAME.activePlayer!==0) return;
+      const m = GAME.players[0].board.find(x=>x.uid===payload.uid);
+      if(!m || !m.canAttack || m.attacked || m.frozen) return;
+    }
+    dragState = { kind, payload, startX:e.clientX, startY:e.clientY, moved:false, sourceEl:el, pointerId:e.pointerId };
+  });
+}
+
+document.addEventListener("pointermove",(e)=>{
+  if(!dragState) return;
+  const dx = e.clientX-dragState.startX, dy = e.clientY-dragState.startY;
+  if(!dragState.moved && Math.hypot(dx,dy)>8){
+    dragState.moved = true;
+    dragState.sourceEl.classList.add("dragging");
+    showGhost(dragState.sourceEl, e.clientX, e.clientY);
+  }
+  if(dragState.moved){
+    positionGhost(e.clientX, e.clientY);
+    updateDropHighlight(e.clientX, e.clientY);
+  }
+});
+
+document.addEventListener("pointerup",(e)=>{
+  if(!dragState) return;
+  const ds = dragState;
+  dragState = null;
+  ds.sourceEl.classList.remove("dragging");
+  hideGhost();
+  clearDropHighlight();
+  if(!ds.moved) return; // simple tap: let the native click handler deal with it
+  ds.sourceEl.dataset.justDragged = "1";
+  if(ds.kind==="hand") handleCardDrop(ds.payload.idx, e.clientX, e.clientY);
+  else if(ds.kind==="attack") handleAttackDrop(ds.payload.uid, e.clientX, e.clientY);
+});
+document.addEventListener("pointercancel",()=>{
+  if(!dragState) return;
+  dragState.sourceEl.classList.remove("dragging");
+  hideGhost(); clearDropHighlight();
+  dragState = null;
+});
+
+function handleCardDrop(handIdx, x, y){
+  const state = GAME;
+  if(state.activePlayer!==0 || state.over) return;
+  const p = state.players[0];
+  const cardId = p.hand[handIdx];
+  const card = CARD_DB[cardId];
+  if(!card || !canPlayCard(state,0,handIdx)) return;
+
+  if(card.needsSacrifice){
+    GAME.pendingTargetMode = { handIdx, card, hintText: (card.needsSacrifice==="multi" ? "Клик по своим существам для жертвы, затем ещё раз по карте в руке." : "Выбери своё существо для жертвы.") + " (Esc — отмена)" };
+    render();
+    return;
+  }
+  if(card.type==="creature" || card.type==="artifact" || (card.type==="spell" && !card.needsTarget)){
+    playCard(state,0,handIdx);
+    render();
+    return;
+  }
+  // targeted spell dropped directly on something
+  const el = document.elementFromPoint(x,y);
+  const miniEl = el && el.closest(".mini");
+  const heroEl = el && el.closest("[data-hero-target]");
+  let targetUid = null;
+  if(miniEl){
+    const uid = parseInt(miniEl.dataset.uid,10);
+    const ownerIdx = parseInt(miniEl.dataset.owner,10);
+    if(card.needsTarget==="own_minion" && ownerIdx!==0) { render(); return; }
+    if(card.needsTarget==="vampire_minion"){
+      const m = findMinion(state,uid);
+      if(!m || !m.tags.has("vampire")){ log("Цель должна иметь тег «Вампир»."); render(); return; }
+    }
+    targetUid = uid;
+  } else if(heroEl){
+    if(card.needsTarget==="own_minion" || card.needsTarget==="any_minion" || card.needsTarget==="vampire_minion"){ render(); return; }
+    targetUid = "hero_"+heroEl.dataset.heroTarget;
+  } else {
+    GAME.pendingTargetMode = { handIdx, card, hintText: "Выбери цель. (Esc — отмена)" };
+    render();
+    return;
+  }
+  playCard(state,0,handIdx,targetUid);
+  render();
+  checkGameEndAfterAction();
+}
+
+function handleAttackDrop(attackerUid, x, y){
+  const state = GAME;
+  if(state.activePlayer!==0 || state.over) return;
+  const el = document.elementFromPoint(x,y);
+  const miniEl = el && el.closest(".mini");
+  const heroEl = el && el.closest("[data-hero-target]");
+  if(miniEl){
+    const ownerIdx = parseInt(miniEl.dataset.owner,10);
+    if(ownerIdx!==0){ attackWith(state,0,attackerUid,"minion",parseInt(miniEl.dataset.uid,10)); }
+  } else if(heroEl && heroEl.dataset.heroTarget==="1"){
+    attackWith(state,0,attackerUid,"hero","hero_1");
+  }
+  render();
+  checkGameEndAfterAction();
+}
+
+/* =========================================================
+   INPUT HANDLING (tap/click fallback — always available)
    ========================================================= */
 function attachHandlers(){
   document.querySelectorAll(".hcard").forEach(el=>{
+    initDrag(el, "hand", {idx: parseInt(el.dataset.idx,10)});
     el.onclick = ()=>{
+      if(el.dataset.justDragged){ delete el.dataset.justDragged; return; }
       if(GAME.activePlayer!==0 || GAME.over) return;
       const idx = parseInt(el.dataset.idx,10);
       const cardId = GAME.players[0].hand[idx];
@@ -769,7 +970,10 @@ function attachHandlers(){
   });
 
   document.querySelectorAll(".mini").forEach(el=>{
+    const ownerAttr = parseInt(el.dataset.owner,10);
+    if(ownerAttr===0){ initDrag(el, "attack", {uid: parseInt(el.dataset.uid,10)}); }
     el.onclick = ()=>{
+      if(el.dataset.justDragged){ delete el.dataset.justDragged; return; }
       if(GAME.over) return;
       const uid = parseInt(el.dataset.uid,10);
       const ownerIdx = parseInt(el.dataset.owner,10);
